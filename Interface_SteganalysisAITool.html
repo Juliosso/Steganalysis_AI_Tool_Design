@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Steganalysis Demo</title>
+  <style>
+    * { box-sizing: border-box; font-family: Arial, sans-serif; margin: 0; padding: 0; }
+    body { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: #f4f4f9; padding: 20px; }
+
+    .container {
+      background: #fff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 450px;
+      text-align: center;
+    }
+
+    h1 { margin-bottom: 15px; font-size: 1.8rem; color: #333; }
+    p { margin-bottom: 30px; color: #666; }
+
+    .upload-box {
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      padding: 25px;
+      cursor: pointer;
+      transition: border-color 0.3s, background 0.3s;
+      margin-bottom: 20px;
+      background: #fafafa;
+      display: block;
+    }
+    .upload-box.dragover { border-color: #4CAF50; background: #e6f9e6; }
+
+    #fileInput { display: none; }
+
+    #preview {
+      max-width: 100%;
+      max-height: 250px;
+      margin: 15px 0;
+      border-radius: 8px;
+      display: none;
+      border: 1px solid #ddd;
+    }
+
+    button {
+      background: #4CAF50;
+      color: white;
+      border: none;
+      padding: 14px 30px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 10px;
+      display: block;
+      width: 100%;
+    }
+    button:hover { background: #45a049; }
+    button:disabled { background: #a5d6a7; cursor: not-allowed; }
+
+    .progress-container {
+      width: 100%;
+      background: #eee;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 20px 0;
+      display: none;
+    }
+    .progress-bar {
+      height: 22px;
+      width: 0%;
+      background: #4CAF50;
+      text-align: center;
+      color: white;
+      line-height: 22px;
+      font-size: 0.9rem;
+      transition: width 0.2s;
+    }
+
+    #result {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      padding: 12px;
+      border-radius: 8px;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.5s;
+      white-space: pre-line;
+    }
+    .success { color: #155724; background: #d4edda; border: 1px solid #c3e6cb; }
+    .warning { color: #856404; background: #fff3cd; border: 1px solid #ffeeba; }
+    .danger { color: #721c24; background: #f8d7da; border: 1px solid #f5c6cb; }
+
+    #learnMore {
+      display: none;
+      margin-top: 10px;
+      font-size: 1rem;
+      text-decoration: none;
+      color: #4CAF50;
+      font-weight: bold;
+    }
+    #learnMore:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>AI Steganalysis Demo</h1>
+    <p>Upload a JPEG image to check for hidden data.</p>
+
+    <label class="upload-box" for="fileInput" id="uploadBox">
+      Click or drag a file here
+    </label>
+    <input type="file" id="fileInput" accept="image/jpeg">
+
+    <img id="preview" alt="Thumbnail preview">
+
+    <button id="analyzeBtn" disabled>Analyse Image</button>
+
+    <div class="progress-container">
+      <div class="progress-bar" id="progressBar">0%</div>
+    </div>
+
+    <div id="result"></div>
+    <a id="learnMore" href="https://www.google.com" target="_blank">Learn more about image steganography</a>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const uploadBox = document.getElementById('uploadBox');
+    const preview = document.getElementById('preview');
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    const progressContainer = document.querySelector('.progress-container');
+    const progressBar = document.getElementById('progressBar');
+    const result = document.getElementById('result');
+    const learnMore = document.getElementById('learnMore');
+
+    // Drag & drop
+    uploadBox.addEventListener('dragover', e => {
+      e.preventDefault();
+      uploadBox.classList.add('dragover');
+    });
+
+    uploadBox.addEventListener('dragleave', e => {
+      e.preventDefault();
+      uploadBox.classList.remove('dragover');
+    });
+
+    uploadBox.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadBox.classList.remove('dragover');
+      if(e.dataTransfer.files.length) {
+        fileInput.files = e.dataTransfer.files;
+        handleFile();
+      }
+    });
+
+    // File selected
+    fileInput.addEventListener('change', handleFile);
+
+    function handleFile() {
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      if(file.type !== 'image/jpeg') {
+        alert('Only JPEG files are allowed.');
+        fileInput.value = '';
+        preview.style.display = 'none';
+        analyzeBtn.disabled = true;
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      }
+      reader.readAsDataURL(file);
+
+      analyzeBtn.disabled = false;
+      result.style.display = 'none';
+      result.style.opacity = 0;
+      learnMore.style.display = 'none';
+    }
+
+    // Analyse button
+    analyzeBtn.addEventListener('click', () => {
+      analyzeBtn.disabled = true;
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressBar.textContent = '0%';
+      result.style.display = 'none';
+      result.style.opacity = 0;
+      learnMore.style.display = 'none';
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.floor(Math.random() * 10) + 5;
+        if(progress > 100) progress = 100;
+        progressBar.style.width = progress + '%';
+        progressBar.textContent = progress + '%';
+
+        if(progress >= 100) {
+          clearInterval(interval);
+
+          const probability = Math.floor(Math.random() * 100);
+          let text = '';
+          if(probability < 10) {
+            text = `No hidden data detected ✅\nProbability of hidden data: ${probability}%\nNote: No clear signs of hidden information were detected.`;
+            result.className = 'success';
+          } else if(probability < 50) {
+            text = `Possible hidden data ⚠️\nProbability of hidden data: ${probability}%\nNote: This image shows potential patterns of hidden information.`;
+            result.className = 'warning';
+          } else {
+            text = `Hidden data likely ❌\nProbability of hidden data: ${probability}%\nNote: This image shows strong indications of hidden information.`;
+            result.className = 'danger';
+          }
+
+          result.textContent = text;
+          result.style.display = 'block';
+          setTimeout(() => { result.style.opacity = 1; }, 50);
+          analyzeBtn.disabled = false;
+
+          // Show learn more link
+          learnMore.style.display = 'inline-block';
+        }
+      }, 200);
+    });
+  </script>
+
+</body>
+</html>
